@@ -8,6 +8,7 @@ local enableweps = CreateConVar("entspawner_enable_weps",1,{FCVAR_ARCHIVE},"Enab
 local enablecars = CreateConVar("entspawner_enable_cars",1,{FCVAR_ARCHIVE},"Enables spawning vehicles from the spawn menu.",0,1)
 local spawningtime = CreateConVar("entspawner_waitingtime",5,{FCVAR_ARCHIVE},"Decides the time between spawns")
 local spawnmax = CreateConVar("entspawner_maximum",50,{FCVAR_ARCHIVE},"Decides the maximum entities.")
+local printing = CreateConVar("entspawner_print",0,{FCVAR_ARCHIVE},"For debugging",0,1)
 local spawnedents = {}
 
 local function list2list(type)
@@ -16,20 +17,22 @@ local function list2list(type)
     end
 end
 
-local function GamerSpawnerGetLists() -- refresh list
+local function GamerSpawnerGetLists(white) -- refresh list
     entslist = {}
-    if enablenpcs:GetBool() then
-        list2list("NPC")
-    end
-    if enablesents:GetBool() then
-        list2list("SpawnableEntities")
-    end
-    if enableweps:GetBool() then
-        list2list("Weapon")
-    end
-    if enablecars:GetBool() then
-        list2list("Vehicles")
-    end
+    if white == nil then
+        if enablenpcs:GetBool() then
+            list2list("NPC")
+        end
+        if enablesents:GetBool() then
+            list2list("SpawnableEntities")
+        end
+        if enableweps:GetBool() then
+            list2list("Weapon")
+        end
+        if enablecars:GetBool() then
+            list2list("Vehicles")
+        end
+    else list2list(white) end
 end
 
 local function GamerSpawnerSpawnedCount(printing)
@@ -52,12 +55,17 @@ local function GamerSpawnRandomEntity()
             navarea = navarea[math.random(#navarea)]
 
             if navarea then
+                local spawntype = false
                 local entnumber = math.random( #entslist ) -- pick the entity
                 if forceentry != false then entnumber = forceentry end
 
                 local entity = entslist[entnumber]["Class"] -- set class for npcs
                 if !entity then entity = entslist[entnumber]["ClassName"] end -- for sents
                 entity = ents.Create(entity)
+
+                if printing:GetBool() then -- to find the troublesomes
+                    print(entity:GetClass())
+                end
 
                 if table.HasValue(table.GetKeys(entslist[entnumber]),"Weapons") then -- weapons
                     local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
@@ -86,10 +94,19 @@ local function GamerSpawnRandomEntity()
                     end
                 end
 
+                if table.HasValue(table.GetKeys(entslist[entnumber]),"OnCeiling") then -- ceiling req
+                    if entslist[entnumber]["OnCeiling"] == true then
+                        spawntype = ceiling
+                    end
+                end
+
                 if forcepos == true then
                     entity:SetPos(Entity(1):GetPos() + Vector(0,200,0))
                 else
                     entity:SetPos(navarea:GetCenter() + Vector(0,0,navarea:GetSizeY() / 2))
+                end
+                if spawntype == ceiling then
+                    entity:SetPos(util.TraceLine({["start"] = entity:GetPos(),["endpos"] = entity:GetPos() + Vector(0,0,10000),["filter"] = {},["whitelist"] = true})["HitPos"])
                 end
                 entity:Spawn()
                 table.insert(spawnedents,entity)
@@ -99,13 +116,15 @@ local function GamerSpawnRandomEntity()
     else print("No entities to spawn!") end
 end
 
--- concommand.Add("entspawner_print_pool", function() -- debugging
---     if forceentry == false then
---         PrintTable(entslist)
---     else
---         PrintTable(entslist[forceentry])
---     end
--- end)
+concommand.Add("entspawner_print_pool", function(ply,cmd,args) -- debugging
+    if forceentry == false then
+        GamerSpawnerGetLists(args[1])
+        PrintTable(entslist)
+        GamerSpawnerGetLists()
+    else
+        PrintTable(entslist[forceentry])
+    end
+end)
 
 -- concommand.Add("entspawner_refresh_pool", function() -- obsolete
 --     GamerSpawnerGetLists()

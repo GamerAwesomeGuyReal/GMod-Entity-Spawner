@@ -5,6 +5,8 @@
 	"ignore"	:
 	[
 		"*.ase",
-		"*.png"
+		"*.png",
+		"*.jpg",
+		"*.jpeg"
 	]
 }

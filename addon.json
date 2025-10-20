@@ -1,0 +1,10 @@
+{
+	"title"		:	"Random Entity Spawner",
+	"type"		:	"tool",
+	"tags"		:	[ "fun" ],
+	"ignore"	:
+	[
+		"*.ase",
+		"*.png"
+	]
+}

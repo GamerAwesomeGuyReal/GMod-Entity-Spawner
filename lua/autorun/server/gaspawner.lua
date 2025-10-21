@@ -65,11 +65,15 @@ local function GamerSpawnRandomEntity()
 
                 if printing:GetBool() then -- to find the troublesomes
                     print(entity:GetClass())
+                    print(entnumber)
+                    print("use print pool to find the above number")
                 end
 
                 if table.HasValue(table.GetKeys(entslist[entnumber]),"Weapons") then -- weapons
-                    local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
-                    entity:Give(entslist[entnumber]["Weapons"][weaponnumber])
+                    if (#entslist[entnumber]["Weapons"] != 0) then
+                        local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
+                        entity:Give(entslist[entnumber]["Weapons"][weaponnumber])
+                    end
                 end
 
                 if table.HasValue(table.GetKeys(entslist[entnumber]),"KeyValues") then -- keyvalues

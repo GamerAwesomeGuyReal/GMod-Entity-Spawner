@@ -14,7 +14,9 @@ local spawnedents = {}
 if SERVER then
     local function list2list(type)
         for i,e in pairs(list.Get(type)) do
-            table.insert(entslist,e)
+            if !(table.HasValue(table.GetKeys(e),"Spawnable") && !e["Spawnable"]) then
+                table.insert(entslist,e)
+            end
         end
     end
 
@@ -63,87 +65,88 @@ if SERVER then
     GamerSpawnerGetLists()
 
     local function GamerSpawnRandomEntity()
+        GamerSpawnerGetLists()
         if #entslist != 0 then
-            GamerSpawnerGetLists()
             local navarea = navmesh.GetAllNavAreas()
+            if #entslist != 0 then
+                if navarea then
+                    local spawntype = false
+                    local entnumber = math.random( #entslist ) -- pick the entity
+                    if forceentry != false then entnumber = forceentry end
 
-            if navarea then
-                local spawntype = false
-                local entnumber = math.random( #entslist ) -- pick the entity
-                if forceentry != false then entnumber = forceentry end
+                    local entity = entslist[entnumber]["Class"] -- set class for npcs
+                    if !entity then entity = entslist[entnumber]["ClassName"] end -- for sents
+                    entity = ents.Create(entity)
 
-                local entity = entslist[entnumber]["Class"] -- set class for npcs
-                if !entity then entity = entslist[entnumber]["ClassName"] end -- for sents
-                entity = ents.Create(entity)
-
-                if printing:GetBool() then -- to find the troublesomes
-                    print(entity:GetClass())
-                    print(entnumber)
-                    print("use print pool to find the above number")
-                end
-
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"Weapons") then -- weapons
-                    if (#entslist[entnumber]["Weapons"] != 0) then
-                        local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
-                        entity:Give(entslist[entnumber]["Weapons"][weaponnumber])
+                    if printing:GetBool() then -- to find the troublesomes
+                        print(entity:GetClass())
+                        print(entnumber)
+                        print("use print pool to find the above number")
                     end
-                end
 
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"KeyValues") then -- keyvalues
-                    for i,k in pairs(table.GetKeys(entslist[entnumber]["KeyValues"])) do -- i dont know what the hell i just did but it worked and im never touching it again
-                        local newvalue = table.GetKeys(entslist[entnumber]["KeyValues"])[k]
-                        entity:SetKeyValue(k,entslist[entnumber]["KeyValues"][k])
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"Weapons") then -- weapons
+                        if (#entslist[entnumber]["Weapons"] != 0) then
+                            local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
+                            entity:Give(entslist[entnumber]["Weapons"][weaponnumber])
+                        end
                     end
-                end
 
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"SpawnFlags") then -- spawnflags
-                    entity:SetSpawnFlags(entslist[entnumber]["SpawnFlags"]) -- that was easy
-                end
-
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"Model") then -- models
-                    entity:SetModel(entslist[entnumber]["Model"])
-                end
-
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"Members") then -- keyvalues
-                    for i,k in pairs(table.GetKeys(entslist[entnumber]["Members"])) do -- i dont know what the hell i just did but it worked and im never touching it again
-                        local newvalue = table.GetKeys(entslist[entnumber]["Members"])[k]
-                        entity.k = entslist[entnumber]["KeyValues"][k]
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"KeyValues") then -- keyvalues
+                        for i,k in pairs(table.GetKeys(entslist[entnumber]["KeyValues"])) do -- i dont know what the hell i just did but it worked and im never touching it again
+                            local newvalue = table.GetKeys(entslist[entnumber]["KeyValues"])[k]
+                            entity:SetKeyValue(k,entslist[entnumber]["KeyValues"][k])
+                        end
                     end
-                end
 
-                local offset = 32
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"Offset") then -- offset 
-                    offset = entslist[entnumber]["Offset"]
-                end
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"NormalOffset") then -- offset again 
-                    offset = entslist[entnumber]["NormalOffset"]
-                end
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"SpawnFlags") then -- spawnflags
+                        entity:SetSpawnFlags(entslist[entnumber]["SpawnFlags"]) -- that was easy
+                    end
 
-                if table.HasValue(table.GetKeys(entslist[entnumber]),"OnCeiling") then -- ceiling req
-                    if entslist[entnumber]["OnCeiling"] == true then
-                        spawntype = ceiling
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"Model") then -- models
+                        entity:SetModel(entslist[entnumber]["Model"])
                     end
-                end
 
-                local normal = Vector( 0, 0, 1 )
-                for i,n in RandomPairs(navmesh.GetAllNavAreas()) do
-                    if forcepos == true then
-                        entity:SetPos(Entity(1):GetPos() + Vector(0,200,0))
-                    else
-                        entity:SetPos(n:GetCenter() + Vector(0,0,n:GetSizeY() / 2))
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"Members") then -- keyvalues
+                        for i,k in pairs(table.GetKeys(entslist[entnumber]["Members"])) do -- i dont know what the hell i just did but it worked and im never touching it again
+                            local newvalue = table.GetKeys(entslist[entnumber]["Members"])[k]
+                            entity.k = entslist[entnumber]["KeyValues"][k]
+                        end
                     end
-                    if spawntype == ceiling then
-                        entity:SetPos(util.TraceLine({["start"] = entity:GetPos(),["endpos"] = entity:GetPos() + Vector(0,0,10000),["filter"] = {},["whitelist"] = true})["HitPos"])
-                        normal = Vector( 0, 0, -1 )
+
+                    local offset = 32
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"Offset") then -- offset 
+                        offset = entslist[entnumber]["Offset"]
                     end
-                    entity:SetPos(entity:GetPos() + Vector(0,0,offset))
-                    if entity:IsNPC() then
-                        if !IsWaterNpc(entity) or entity:WaterLevel() > 2 or !NavHasWater() then break end
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"NormalOffset") then -- offset again 
+                        offset = entslist[entnumber]["NormalOffset"]
                     end
-                end
-                entity:Spawn()
-                table.insert(spawnedents,entity)
-            else print("YOU NEED A NAVMESH FOR THE SPAWNER, DINGUS!!!") end
+                    entity:SetAngles(Angle(0,math.random(0,360),0))
+
+                    if table.HasValue(table.GetKeys(entslist[entnumber]),"OnCeiling") then -- ceiling req
+                        if entslist[entnumber]["OnCeiling"] == true then
+                            spawntype = ceiling
+                        end
+                    end
+                    for i,n in RandomPairs(navmesh.GetAllNavAreas()) do
+                        if forcepos == true then
+                            entity:SetPos(Entity(1):GetPos() + Vector(0,200,0))
+                        else
+                            entity:SetPos(n:GetCenter() + Vector(0,0,n:GetSizeY()))
+                            if spawntype == ceiling then
+                                entity:SetPos(util.TraceLine({["start"] = entity:GetPos(),["endpos"] = entity:GetPos() + Vector(0,0,10000),["filter"] = {},["whitelist"] = true})["HitPos"] + Vector(0,0,offset * -1))
+                            else
+                                entity:SetPos(util.TraceLine({["start"] = entity:GetPos(),["endpos"] = entity:GetPos() - Vector(0,0,10000),["filter"] = {},["whitelist"] = true})["HitPos"] + Vector(0,0,offset))
+                            end
+                        end
+                        entity:SetPos(entity:GetPos() + Vector(0,0,0))
+                        if entity:IsNPC() then
+                            if !IsWaterNpc(entity) or entity:WaterLevel() > 2 or !NavHasWater() then break end
+                        end
+                    end
+                    entity:Spawn()
+                    table.insert(spawnedents,entity)
+                else print("YOU NEED A NAVMESH FOR THE SPAWNER, DINGUS!!!") end
+            end
         else print("No entities to spawn!") end
     end
 

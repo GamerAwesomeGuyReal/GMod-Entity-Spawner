@@ -6,6 +6,7 @@ local enablenpcs = CreateConVar("entspawner_enable_npcs",1,{FCVAR_ARCHIVE},"Enab
 local enablesents = CreateConVar("entspawner_enable_sents",1,{FCVAR_ARCHIVE},"Enables spawning sents from the spawn menu.",0,1)
 local enableweps = CreateConVar("entspawner_enable_weps",1,{FCVAR_ARCHIVE},"Enables spawning weapons from the spawn menu.",0,1)
 local enablecars = CreateConVar("entspawner_enable_cars",1,{FCVAR_ARCHIVE},"Enables spawning vehicles from the spawn menu.",0,1)
+local weprando = CreateConVar("entspawner_rand_npcweps",0,{FCVAR_ARCHIVE},"Enables randomly replacing npc weapons.",0,1)
 local spawningtime = CreateConVar("entspawner_waitingtime",5,{FCVAR_ARCHIVE},"Decides the time between spawns")
 local spawnmax = CreateConVar("entspawner_maximum",50,{FCVAR_ARCHIVE},"Decides the maximum entities.")
 local printing = CreateConVar("entspawner_print",0,{FCVAR_ARCHIVE},"For debugging",0,1)
@@ -86,8 +87,12 @@ if SERVER then
 
                     if table.HasValue(table.GetKeys(entslist[entnumber]),"Weapons") then -- weapons
                         if (#entslist[entnumber]["Weapons"] != 0) then
-                            local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
-                            entity:Give(entslist[entnumber]["Weapons"][weaponnumber])
+			    if !weprando:GetBool() then
+		                local weaponnumber = math.random(#entslist[entnumber]["Weapons"]) -- get random weapon
+		                entity:Give(entslist[entnumber]["Weapons"][weaponnumber])
+			    else
+				entity:Give(list.Get("NPCUsableWeapons")[math.random(#list.Get("NPCUsableWeapons"))]["class"])
+			    end
                         end
                     end
 

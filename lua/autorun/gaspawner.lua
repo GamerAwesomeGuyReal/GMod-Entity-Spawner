@@ -67,11 +67,11 @@ if SERVER then
     GamerSpawnerGetLists()
 
     local function GamerSpawnRandomEntity()
-        GamerSpawnerGetLists()
-        if #entslist != 0 then
-            local navarea = navmesh.GetAllNavAreas()
+        pcall(function()
+            GamerSpawnerGetLists()
             if #entslist != 0 then
-                if navarea then
+                local navarea = navmesh.GetAllNavAreas()
+                if #navarea > 0 then
                     local spawntype = false
                     local entnumber = 0
                     if forceentry != false then entnumber = forceentry else
@@ -162,8 +162,8 @@ if SERVER then
                     entity:Spawn()
                     table.insert(spawnedents,entity)
                 else print("YOU NEED A NAVMESH FOR THE SPAWNER, DINGUS!!!") end
-            end
-        else print("No entities to spawn!") end
+            else print("No entities to spawn!") end
+        end)
     end
 
     concommand.Add("entspawner_print_pool", function(ply,cmd,args) -- debugging
@@ -193,13 +193,13 @@ if SERVER then
     -- end)
 
     timer.Create("GAMERENTSPAWNTIMER", spawningtime:GetFloat(),0, function()
-        timer.Adjust("GAMERENTSPAWNTIMER",spawningtime:GetFloat())
         if enabletimer:GetBool() then
             if GamerSpawnerSpawnedCount(false) < spawnmax:GetInt() then
                 GamerSpawnRandomEntity()
             end
         end
     end)
+    cvars.AddChangeCallback("entspawner_waitingtime",function() timer.Adjust("GAMERENTSPAWNTIMER",spawningtime:GetFloat()) end)
 else
     -- client side
     hook.Add( "PopulateToolMenu", "GASpawnerOptions", function()

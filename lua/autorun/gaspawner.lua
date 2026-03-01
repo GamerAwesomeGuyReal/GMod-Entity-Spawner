@@ -8,8 +8,10 @@ local enableweps = CreateConVar("entspawner_enable_weps",1,{FCVAR_ARCHIVE},"Enab
 local enablecars = CreateConVar("entspawner_enable_cars",1,{FCVAR_ARCHIVE},"Enables spawning vehicles from the spawn menu.",0,1)
 local weprando = CreateConVar("entspawner_rand_npcweps",0,{FCVAR_ARCHIVE},"Enables randomly replacing npc weapons.",0,1)
 local adminents = CreateConVar("entspawner_enable_admin",0,{FCVAR_ARCHIVE},"Enables entities which can only be spawned by admins.",0,1)
-local spawningtime = CreateConVar("entspawner_waitingtime",5,{FCVAR_ARCHIVE},"Decides the time between spawns")
+local spawningtime = CreateConVar("entspawner_waitingtime",5,{FCVAR_ARCHIVE},"Decides the time between spawns.")
+local dynamictime = CreateConVar("entspawner_dynamictime",0,{FCVAR_ARCHIVE},"Enables dynamic spawn times.",0,1)
 local spawnmax = CreateConVar("entspawner_maximum",50,{FCVAR_ARCHIVE},"Decides the maximum entities.")
+local enablemax = CreateConVar("entspawner_maximum_enable",1,{FCVAR_ARCHIVE},"Keeps the limit on.",0,1)
 local printing = CreateConVar("entspawner_print",0,{FCVAR_ARCHIVE},"For debugging",0,1)
 local spawnedents = {}
 
@@ -62,6 +64,14 @@ if SERVER then
             end
         end
         return #spawnedents
+    end
+
+    local function calculatespawntime()
+        if dynamictime:GetBool() then
+            return spawningtime:GetFloat() * (math.max(GamerSpawnerSpawnedCount(),1) / math.max(spawnmax:GetInt(),1))
+        else 
+            return spawningtime:GetFloat()
+        end
     end
 
     GamerSpawnerGetLists()
@@ -161,6 +171,7 @@ if SERVER then
                     end
                     entity:Spawn()
                     table.insert(spawnedents,entity)
+                    timer.Adjust("GAMERENTSPAWNTIMER",calculatespawntime())
                 else print("YOU NEED A NAVMESH FOR THE SPAWNER, DINGUS!!!") end
             else print("No entities to spawn!") end
         end)
@@ -192,14 +203,14 @@ if SERVER then
     --     print(NavHasWater())
     -- end)
 
-    timer.Create("GAMERENTSPAWNTIMER", spawningtime:GetFloat(),0, function()
+    timer.Create("GAMERENTSPAWNTIMER", calculatespawntime(),0, function()
         if enabletimer:GetBool() then
-            if GamerSpawnerSpawnedCount(false) < spawnmax:GetInt() then
+            if (GamerSpawnerSpawnedCount(false) < spawnmax:GetInt()) or !enablemax:GetBool() then
                 GamerSpawnRandomEntity()
             end
         end
     end)
-    cvars.AddChangeCallback("entspawner_waitingtime",function() timer.Adjust("GAMERENTSPAWNTIMER",spawningtime:GetFloat()) end)
+    cvars.AddChangeCallback("entspawner_waitingtime",function() timer.Adjust("GAMERENTSPAWNTIMER",calculatespawntime()) end)
 else
     -- client side
     hook.Add( "PopulateToolMenu", "GASpawnerOptions", function()
@@ -212,8 +223,11 @@ else
             panel:CheckBox("Enable Weapons", "entspawner_enable_weps"):SetIndent(8)
             panel:CheckBox("Enable Vehicles", "entspawner_enable_cars"):SetIndent(8)
             panel:CheckBox("Enable Admin-Only Entities", "entspawner_enable_admin"):SetIndent(8)
-            panel:NumSlider("Spawn delay", "entspawner_waitingtime",0,86400,0)
-            panel:NumSlider("Maximum entities", "entspawner_maximum",0,1000,0)
+            panel:NumSlider("Spawn Delay", "entspawner_waitingtime",0,240,0)
+            panel:CheckBox("Enable Dynamic Spawn Times", "entspawner_dynamictime"):SetIndent(16)
+            panel:ControlHelp("Overrides the time to (time * (spawned / cap))"):DockMargin(48,0,48,8)
+            panel:NumSlider("Maximum entities", "entspawner_maximum",0,100,0)
+            panel:CheckBox("Enable Maximum", "entspawner_maximum_enable"):SetIndent(16)
             panel:CheckBox("Printing for debug", "entspawner_print")
         end )
     end )
